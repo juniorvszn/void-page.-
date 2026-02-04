@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VOID'</title>
+
+<style>
+/* ===== BASE ===== */
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:black;
+  color:white;
+  font-family:Arial,Helvetica,sans-serif;
+  text-align:center;
+  overflow-x:hidden;
+}
+
+/* ===== BACKGROUND ANIMATION ===== */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,0,0,.15), transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(255,0,0,.1), transparent 40%);
+  animation:bgMove 10s infinite alternate;
+  z-index:-2;
+}
+@keyframes bgMove{
+  from{transform:scale(1)}
+  to{transform:scale(1.1)}
+}
+
+/* ===== SCANLINES ===== */
+.scanlines{
+  pointer-events:none;
+  position:fixed;
+  inset:0;
+  background:repeating-linear-gradient(
+    to bottom,
+    rgba(255,0,0,0.05),
+    rgba(255,0,0,0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  animation:scan 6s linear infinite;
+  z-index:-1;
+}
+@keyframes scan{
+  from{background-position:0 0}
+  to{background-position:0 100%}
+}
+
+/* ===== TITLE ===== */
+h1{
+  color:red;
+  font-size:64px;
+  margin-top:30px;
+  animation:glitch 1.5s infinite;
+}
+@keyframes glitch{
+  0%{text-shadow:2px 0 red}
+  50%{text-shadow:-2px 0 darkred}
+  100%{text-shadow:2px 0 red}
+}
+
+/* ===== BOX ===== */
+.box{
+  width:330px;
+  margin:25px auto;
+  padding:20px;
+  border:2px solid red;
+  animation:cardIn .8s ease forwards,pulse 2s infinite;
+}
+@keyframes cardIn{
+  from{opacity:0;transform:scale(.9)}
+  to{opacity:1;transform:scale(1)}
+}
+@keyframes pulse{
+  0%{box-shadow:0 0 5px red}
+  50%{box-shadow:0 0 20px darkred}
+  100%{box-shadow:0 0 5px red}
+}
+
+/* ===== INPUTS ===== */
+input,select,button{
+  width:95%;
+  padding:10px;
+  margin:8px 0;
+  background:black;
+  color:white;
+  border:1px solid red;
+}
+button{
+  font-weight:bold;
+}
+button:hover{
+  background:red;
+  cursor:pointer;
+  animation:btnGlitch .3s linear infinite;
+}
+@keyframes btnGlitch{
+  0%{transform:translate(0)}
+  20%{transform:translate(-2px,2px)}
+  40%{transform:translate(2px,-2px)}
+  60%{transform:translate(-2px,-2px)}
+  80%{transform:translate(2px,2px)}
+  100%{transform:translate(0)}
+}
+
+/* ===== VIDEO ===== */
+video{
+  width:100%;
+  margin-top:10px;
+  border:1px solid red;
+}
+
+/* ===== UTILS ===== */
+.hidden{display:none}
+</style>
+</head>
+
+<body>
+
+<div class="scanlines"></div>
+
+<h1>VOID'</h1>
+
+<!-- HONEYPOT -->
+<input type="text" id="botField" style="display:none">
+
+<!-- STEP 1 -->
+<div class="box" id="humanBox">
+  <button onclick="verifyHuman()">I am human</button>
+</div>
+
+<!-- STEP 2 -->
+<div class="box hidden" id="userBox">
+  <input id="name" placeholder="Full Name">
+  <input id="discord" placeholder="Discord Username">
+  <input id="birth" type="date">
+  <button onclick="verifyUser()">Continue</button>
+</div>
+
+<!-- LOADING -->
+<div class="box hidden" id="loading">
+  <h3>Verifying...</h3>
+</div>
+
+<!-- STEP 3 -->
+<div class="box hidden" id="shopBox">
+  <h2>REGISTER PURCHASE</h2>
+
+  <select id="product" onchange="updatePrice()">
+    <option value="">Select Product</option>
+    <option>PACK OPTIMIZE 1.1</option>
+    <option>PACK OPTIMIZE 1.2</option>
+    <option>REGEDIT 1</option>
+  </select>
+
+  <select id="category" onchange="updatePrice()">
+    <option value="">Select Category</option>
+    <option value="20">Basic</option>
+    <option value="40">Pro</option>
+    <option value="60">Ultimate</option>
+  </select>
+
+  <h3 id="price">Price: --</h3>
+
+  <button onclick="sendOrder()">SUBMIT ORDER</button>
+
+  <video controls>
+    <source src="videos/example1.mp4">
+  </video>
+</div>
+
+<script>
+/* ===== CONFIG ===== */
+const webhook="PUT_DISCORD_WEBHOOK_HERE";
+let humanTime=0;
+
+/* STEP 1 */
+function verifyHuman(){
+  humanTime=Date.now();
+  document.getElementById("humanBox").classList.add("hidden");
+  document.getElementById("userBox").classList.remove("hidden");
+}
+
+/* STEP 2 */
+function verifyUser(){
+  if(Date.now()-humanTime<3000){alert("Bot detected");return;}
+  if(document.getElementById("botField").value!==""){alert("Bot detected");return;}
+
+  document.getElementById("userBox").classList.add("hidden");
+  document.getElementById("loading").classList.remove("hidden");
+
+  setTimeout(()=>{
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById("shopBox").classList.remove("hidden");
+  },2000);
+}
+
+/* PRICE */
+function updatePrice(){
+  let c=document.getElementById("category").value;
+  document.getElementById("price").innerText=c?"Price: "+c+" DT":"Price: --";
+}
+
+/* RATE LIMIT */
+function canSend(){
+  let last=localStorage.getItem("lastOrder");
+  if(last && Date.now()-last<60000){
+    alert("Please wait 1 minute before sending another order.");
+    return false;
+  }
+  localStorage.setItem("lastOrder",Date.now());
+  return true;
+}
+
+/* SEND */
+function sendOrder(){
+  if(!canSend()) return;
+
+  let data={
+    content:
+`🛒 **NEW VOID' ORDER**
+👤 Name: ${name.value}
+🎮 Discord: ${discord.value}
+🎂 Birth Date: ${birth.value}
+📦 Product: ${product.value}
+🗂️ Category: ${category.options[category.selectedIndex].text}
+💰 Price: ${category.value} DT`
+  };
+
+  fetch(webhook,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(data)
+  });
+
+  alert("Order sent successfully 🔥");
+}
+</script>
+
+</body>
+</html>
